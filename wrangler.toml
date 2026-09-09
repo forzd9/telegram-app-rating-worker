@@ -1,0 +1,7 @@
+name = "moha-rating-bot"
+main = "worker.js"
+compatibility_date = "2026-09-09"
+workers_dev = true
+
+[observability]
+enabled = true
