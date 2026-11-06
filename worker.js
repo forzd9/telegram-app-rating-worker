@@ -2,10 +2,7 @@
 // ⭐ TELEGRAM RATING BOT - CLOUDFLARE WORKER
 // ============================================================
 
-const BOT_TOKEN = "8833337494:AAGcjPFwozb4L7q9Us4dzxs-LBGX--SXzCs";
-const OWNER_ID = 6891530912;
 
-const API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 const WELCOME_MESSAGE = `
 <b>🌟 مرحبًا بك في م | آيات 🤍</b>
@@ -29,8 +26,8 @@ function keyboard() {
     };
 }
 
-async function tg(method, data) {
-    const response = await fetch(`${API}/${method}`, {
+async function tg(api, method, data) {
+    const response = await fetch(`${api}/${method}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -50,8 +47,8 @@ function escapeHTML(text) {
         .replace(/'/g, "&#039;");
 }
 
-async function start(message) {
-    await tg("sendMessage", {
+async function start(message, api) {
+    await tg(api, "sendMessage", {
         chat_id: message.chat.id,
         text: WELCOME_MESSAGE,
         parse_mode: "HTML",
@@ -59,7 +56,7 @@ async function start(message) {
     });
 }
 
-async function rating(query) {
+async function rating(query, api, ownerId) {
     const rating = Number(query.data.replace("rate_", ""));
 
     if (![1, 2, 3, 4, 5].includes(rating)) return;
@@ -67,12 +64,12 @@ async function rating(query) {
     const user = query.from;
     const chatId = query.message.chat.id;
 
-    await tg("answerCallbackQuery", {
+    await tg(api, "answerCallbackQuery", {
         callback_query_id: query.id,
         text: `تم تسجيل تقييمك ${"⭐".repeat(rating)}`
     });
 
-    await tg("editMessageReplyMarkup", {
+    await tg(api, "editMessageReplyMarkup", {
         chat_id: chatId,
         message_id: query.message.message_id,
         reply_markup: {
@@ -122,15 +119,15 @@ ${"⭐".repeat(rating)} <b>(${rating}/5)</b>
 <b>━━━━━━━━━━━━━━━━━━━━</b>
 `;
 
-    const result = await tg("sendMessage", {
-        chat_id: OWNER_ID,
+    const result = await tg(api, "sendMessage", {
+        chat_id: ownerId,
         text: ownerMessage,
         parse_mode: "HTML",
         disable_web_page_preview: true
     });
 
     if (result.ok) {
-        await tg("sendMessage", {
+        await tg(api, "sendMessage", {
             chat_id: chatId,
             text: `
 <b>✅ شكرًا لك!</b>
@@ -146,13 +143,19 @@ ${"⭐".repeat(rating)} <b>(${rating}/5)</b>
 }
 
 export default {
-    async fetch(request) {
+    async fetch(request, env) {
 
         if (request.method === "GET") {
             return new Response(
                 "✅ Telegram Rating Bot is running."
             );
         }
+        const botToken = env?.BOT_TOKEN;
+        const ownerId = Number(env?.OWNER_ID);
+        if (!botToken || !Number.isSafeInteger(ownerId)) {
+            return new Response("Worker secrets are not configured.", { status: 500 });
+        }
+        const api = `https://api.telegram.org/bot${botToken}`;
 
         if (
             request.method !== "POST" ||
@@ -167,11 +170,11 @@ export default {
             const update = await request.json();
 
             if (update.message?.text?.startsWith("/start")) {
-                await start(update.message);
+                await start(update.message, api);
             }
 
             if (update.callback_query) {
-                await rating(update.callback_query);
+                await rating(update.callback_query, api, ownerId);
             }
 
             return new Response("OK");

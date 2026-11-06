@@ -57,3 +57,7 @@
 ## الترخيص
 
 لم يُعثر على ملف ترخيص في المستودع؛ لا يثبت حقل `license` في `package.json` وحده وجود ملف ترخيص أو يمنح توضيحًا كافيًا لشروط الاستخدام. راجع صاحب المشروع قبل إعادة الاستخدام أو التوزيع.
+
+## Secure Worker configuration
+
+The Worker reads `BOT_TOKEN` and `OWNER_ID` from Cloudflare Worker bindings. For local development, copy `.dev.vars.example` to `.dev.vars` and fill it locally; `.dev.vars` is ignored. For deployment, set the values with Wrangler secrets or the Cloudflare dashboard. The source code contains no credential values.
